@@ -1,0 +1,17 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.douban.com/simple/"
+verify_ssl = true
+
+[dev-packages]
+pre-commit = "*"
+flake8 = "*"
+black = "*"
+
+[packages]
+cryptography = "==2.4.2"
+paramiko = "*"
+pywinrm = "*"
+
+[requires]
+python_version = "3.6"
