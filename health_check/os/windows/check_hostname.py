@@ -3,10 +3,15 @@ import argparse
 import logging
 import sys
 
-if __name__ == "__main__":
-    from helper import logger, execute
+if __package__ is None or __package__ == "":
+    from helper import strip_line
 else:
-    from .helper import logger, execute
+    from .helper import strip_line
+
+from health_check.logging import current_logger as logger
+from health_check.os.windows.connection import DEFAULT_PORT, execute
+from health_check.pipe import skip_empty_line
+from health_check.result import Result
 
 
 #    _______  __        ______   .______        ___       __        #
@@ -51,8 +56,9 @@ def check_retrieve(host, port, username, password):
 
 
 def check_extract(source):
-    logger.debug("check extract => %s", source)
-    return source
+    for line in skip_empty_line(strip_line(source)):
+        logger.debug("check extract => %s", line)
+        return line
 
 
 #   ___________    ____  ___       __       __    __       ___   .___________. _______ #
@@ -65,8 +71,9 @@ def check_extract(source):
 
 
 def check_evaluate(source):
-    logger.debug("check evaluate => %s", source)
-    return source
+    result = Result(logging.INFO, source)
+    logger.debug("check evaluate => %s", result)
+    return result
 
 
 #  .___  ___.      ___       __  .__   __.  #
@@ -83,7 +90,7 @@ def main():
     parser.add_argument("host", help="host name")
     parser.add_argument("username", help="host username")
     parser.add_argument("password", help="host password")
-    parser.add_argument("--port", help="host port", type=int, default=5985)
+    parser.add_argument("--port", help="host port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--verbose", help="debug mode", action="store_true")
     args = parser.parse_args()
 
@@ -93,12 +100,12 @@ def main():
     retrieve_result = check_retrieve(args.host, args.port, args.username, args.password)
     extract_result = check_extract(retrieve_result)
     evaluate_result = check_evaluate(extract_result)
-    print(evaluate_result)
+    return evaluate_result
 
 
 if __name__ == "__main__":
     try:
-        main()
+        print(main())
     except Exception as e:
         logger.exception(e)
         sys.exit(1)

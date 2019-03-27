@@ -3,11 +3,15 @@ import argparse
 import logging
 import sys
 
-if __name__ == "__main__":
-    from helper import logger, execute
+if __package__ is None or __package__ == "":
+    from helper import strip_line
 else:
-    from .helper import logger, execute
+    from .helper import strip_line
 
+from health_check.logging import current_logger as logger
+from health_check.os.linux.connection import DEFAULT_PORT, execute
+from health_check.pipe import skip_empty_line, skip_head_line
+from health_check.rule import Rule, evaluate_rules
 
 #    _______  __        ______   .______        ___       __        #
 #   /  _____||  |      /  __  \  |   _  \      /   \     |  |       #
@@ -31,7 +35,7 @@ __version__ = "1.0.0"
 
 
 REMOTE_COMMAND = """
-df -i
+df -ih
 """
 
 
@@ -51,8 +55,21 @@ def check_retrieve(host, port, username, password):
 
 
 def check_extract(source):
-    logger.debug("check extract => %s", source)
-    return source
+    result = []
+    for line in skip_head_line(skip_empty_line(strip_line(source))):
+        fs_capacity_info = line.split()
+        result.append(
+            {
+                "fs": fs_capacity_info[0],
+                "inodes": fs_capacity_info[1],
+                "iused": fs_capacity_info[2],
+                "ifree": fs_capacity_info[3],
+                "iused%": int(fs_capacity_info[4][:-1]),
+                "mount": fs_capacity_info[5],
+            }
+        )
+    logger.debug("check extract => %s", result)
+    return result
 
 
 #   ___________    ____  ___       __       __    __       ___   .___________. _______ #
@@ -64,9 +81,18 @@ def check_extract(source):
 #                                                                                      #
 
 
+RULES = [
+    Rule(logging.ERROR, lambda x: x >= 90, rec="请尽快清理文件系统"),
+    Rule(logging.WARN, lambda x: 80 <= x < 90, rec="请及时清理文件系统"),
+]
+
+
 def check_evaluate(source):
-    logger.debug("check evaluate => %s", source)
-    return source
+    result = []
+    for fs in source:
+        result.append(evaluate_rules(fs, RULES, key=lambda x: x["iused%"]))
+    logger.debug("check evaluate => %s", result)
+    return result
 
 
 #  .___  ___.      ___       __  .__   __.  #
@@ -83,7 +109,7 @@ def main():
     parser.add_argument("host", help="host name")
     parser.add_argument("username", help="host username")
     parser.add_argument("password", help="host password")
-    parser.add_argument("--port", help="host port", type=int, default=22)
+    parser.add_argument("--port", help="host port", type=int, default=DEFAULT_PORT)
     parser.add_argument("--verbose", help="debug mode", action="store_true")
     args = parser.parse_args()
 
@@ -93,12 +119,12 @@ def main():
     retrieve_result = check_retrieve(args.host, args.port, args.username, args.password)
     extract_result = check_extract(retrieve_result)
     evaluate_result = check_evaluate(extract_result)
-    print(evaluate_result)
+    return evaluate_result
 
 
 if __name__ == "__main__":
     try:
-        main()
+        print(main())
     except Exception as e:
         logger.exception(e)
         sys.exit(1)

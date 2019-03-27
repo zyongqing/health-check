@@ -5,8 +5,8 @@ This is a basic framework for remote host health check.
 ## Commands
 
 ```bash
-usage: run.py [-h] [--port PORT] [--verbose]
-              host username password {windows,linux}
+usage: run [-h] [--port PORT] [--verbose]
+           host username password {windows,linux}
 
 health check
 

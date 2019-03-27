@@ -1,13 +1,8 @@
 import paramiko
+from health_check.logging import current_logger as logger
 
-# for script maintancers
-if __package__ == "":
-    import logging
-
-    logging.basicConfig(format="%(levelname)s\t%(asctime)s\t%(message)s")
-    logger = logging.getLogger(__name__)
-else:
-    from health_check.utils.logging import current_logger as logger
+DEFAULT_PORT = 22
+LINE_END = "\n"
 
 
 def execute(host, port, username, password, command):
@@ -25,8 +20,8 @@ def execute(host, port, username, password, command):
         logger.debug("exit status => %s", exit_status)
 
         stdout_payload, stderr_payload = stdout.readlines(), stderr.readlines()
-        logger.debug("stdout payload => %s", stdout_payload)
-        logger.debug("stderr payload => %s", stderr_payload)
+        logger.debug("stdout payload =>\n%s<=end", "".join(stdout_payload))
+        logger.debug("stderr payload =>\n%s<=end", "".join(stderr_payload))
 
         return exit_status, stdout_payload, stderr_payload
     finally:

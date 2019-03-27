@@ -4,8 +4,8 @@ import json
 import logging
 import sys
 from datetime import datetime
-from health_check.utils.logging import current_logger as logger
-from health_check.utils.zipfile import save_all
+from health_check.logging import current_logger as logger
+from health_check.zipfile import save_all
 
 #    _______  __        ______   .______        ___       __        #
 #   /  _____||  |      /  __  \  |   _  \      /   \     |  |       #
@@ -29,8 +29,8 @@ __version__ = "1.0.0"
 
 
 def load_checks_module(platform):
-    module_name = "health_check.os.%s.checks" % platform
-    checks = __import__(module_name, globals(), locals(), ["checks"])
+    module_name = f"health_check.os.{platform}"
+    checks = __import__(module_name, globals(), locals(), [platform])
     return checks
 
 
@@ -55,7 +55,7 @@ def run_all_checks(host, port, username, password, checks):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="health check")
+    parser = argparse.ArgumentParser(prog="run", description="health check")
     parser.add_argument("host", help="host name")
     parser.add_argument("username", help="host username")
     parser.add_argument("password", help="host password")
@@ -71,7 +71,7 @@ def main():
     all_checks = checks_module.__all__
 
     if args.port is None:
-        args.port = checks_module.DEFAULT_PORT
+        args.port = checks_module.connection.DEFAULT_PORT
 
     save_all(
         get_zipfile_name(args.platform, args.host),
