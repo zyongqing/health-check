@@ -16,10 +16,11 @@ def connection_cache(func):
                 try:
                     while True:
                         yield client
-                # close when system terminate
-                except:  # noqa E722
-                    if hasattr(client, "close"):
+                finally:
+                    try:
                         client.close()
+                    except:  # noqa E722
+                        pass
                     logger.debug("[%s:%s] close: ok", host, port)
 
             _cache = _generator(*args, **kwargs)
